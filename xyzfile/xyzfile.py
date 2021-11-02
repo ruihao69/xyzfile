@@ -14,13 +14,25 @@ class XYZFile(object):
 
         # xyz data into flatten numpy array
         self.xyz = np.empty((self.length*3), dtype=float)
-        self.load_next_frame(is_first = True)
+        self.is_first = True
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        self.load_next_frame()
+        exists = self.fhandle.readline()
+        if len(exists)==0:
+            self.fhandle.close()
+            raise StopIteration()
+
+        if self.is_first:
+            self.is_first=False
+        elif not self.is_first:
+            self.fhandle.readline()
+
+        for i in range(self.length):
+            parts = re.split(' +', self.fhandle.readline().strip())
+            self.xyz[i*3:i*3+3] = parts[1:]
         return self.xyz
 
     def get_elements(self, filename):
@@ -31,14 +43,3 @@ class XYZFile(object):
             head = [next(xyzfile) for x in range(self.length+2)][2:]
             for ii in range(self.length):
                 self.elements[ii] = re.split(' +', head[ii].strip())[0]
-
-    def load_next_frame(self, is_first = False):
-        exists = self.fhandle.readline()
-        if len(exists) == 0:
-            raise StopIteration()
-        if not is_first:
-            self.fhandle.readline()
-
-        for i in range(self.length):
-            parts = re.split(' +', self.fhandle.readline().strip())
-            self.xyz[i*3:i*3+3] = parts[1:]
